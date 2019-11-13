@@ -6,6 +6,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
+/**
+ * Implements a single-threaded version of Conway's Game of Life
+ */
 class Life {
     int width, height;
     int[] map;

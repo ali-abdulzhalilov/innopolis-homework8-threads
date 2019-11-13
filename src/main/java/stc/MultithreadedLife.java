@@ -1,16 +1,12 @@
 package stc;
 
-import sun.reflect.misc.FieldUtil;
-
 import java.io.IOException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.*;
-import java.util.function.Function;
 
+/**
+ * Implements a multi-threaded version of Conway's Game of Life using fixed thread pool
+ */
 class MultithreadedLife extends Life {
     ExecutorService service;
 
