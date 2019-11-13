@@ -2,14 +2,13 @@ package stc;
 
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 
 class Life {
-    private int width, height;
-    private int[] map;
+    int width, height;
+    int[] map;
 
     Life(int width, int height) {
         this.width = width;
@@ -18,6 +17,7 @@ class Life {
         fillMapRandomly(0.4f);
     }
 
+    // TODO: split the constructor to methods
     Life(String filepath) throws IOException {
         FileInputStream fileIn = new FileInputStream(filepath);
 
@@ -51,6 +51,14 @@ class Life {
                 this.map[pointToIndex(j, i)] = number;
             }
         }
+    }
+
+    public int getWidth() {
+        return this.width;
+    }
+
+    public int getHeight() {
+        return this.height;
     }
 
     /**
@@ -143,7 +151,7 @@ class Life {
         System.out.println();
     }
 
-    private int pointToIndex(int x, int y) {
+    int pointToIndex(int x, int y) {
         return y * width + x;
     }
 }
