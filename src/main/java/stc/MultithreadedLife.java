@@ -7,110 +7,68 @@ import java.util.concurrent.*;
 /**
  * Implements a multi-threaded version of Conway's Game of Life using fixed thread pool
  */
-class MultithreadedLife extends Life {
-    ExecutorService service;
 
-    MultithreadedLife(String filepath) throws IOException {
+class MultithreadedLife extends Life {
+    private ExecutorService service;
+
+    MultithreadedLife(String filepath, ExecutorService executorService) throws IOException {
         super(filepath);
-        service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()-2);
+        this.service = executorService;
+
     }
 
     @Override
-    void step() {
+    void step() throws InterruptedException, ExecutionException {
         ArrayList<RowCalculator> rowCalculators = new ArrayList<>();
         for (int i = 0; i < height; i++) {
-            rowCalculators.add(new RowCalculator(map, width, height, i));
+            rowCalculators.add(new RowCalculator(map, width, i));
         }
 
-        ArrayList<Future<int[]>> futures = new ArrayList<>();
-        
-        for (RowCalculator rowCalc : rowCalculators)
-            futures.add(service.submit(rowCalc));
-
-        int[] newMap = new int[width*height];
+        ArrayList<Future<Row>> futures = (ArrayList<Future<Row>>) service.invokeAll(rowCalculators);
+        int[] newMap = new int[width * height];
 
         for (int i = 0; i < futures.size(); i++) {
-            int[] row = null;
-            try {
-                row = futures.get(i).get();
-            } catch (InterruptedException | ExecutionException e) {
-                e.printStackTrace();
-            }
+            Row row = futures.get(i).get();
 
             for (int j = 0; j < width; j++) {
-                newMap[pointToIndex(j, i)] = row[j];
+                newMap[pointToIndex(width, j, row.rowIndex)] = row.row[j];
             }
         }
 
         map = newMap;
     }
-}
 
-class RowCalculator implements Callable<int[]> {
-    
-    private int[] map;
-    private int width;
-    private int height;
-    private int rowIndex;
-    
-    RowCalculator(int[] map, int width, int height, int rowIndex) {
-        this.map = map;
-        this.width = width;
-        this.height = height;
-        this.rowIndex = rowIndex;
-    }
+    class RowCalculator implements Callable<Row> {
+        private int[] map;
+        private int width;
+        private int rowIndex;
 
-    @Override
-    public int[] call() throws Exception {
-        int[] row = new int[width];
-        
-        for (int i = 0; i < width; i++) {
-            int count = aliveNeighboursCount(getNeighbours(i, rowIndex));
-            row[i] = newState(map[pointToIndex(i, rowIndex)], count);
+        RowCalculator(int[] map, int width, int rowIndex) {
+            this.map = map;
+            this.width = width;
+            this.rowIndex = rowIndex;
         }
 
-        return row;
-    }
+        @Override
+        public Row call() throws Exception {
+            int[] row = new int[width];
 
-    private int[] getNeighbours(int x, int y) {
-        int[] neighbours = new int[8];
-
-        int counter = 0;
-        for (int i = -1; i <= 1; i++) {
-            for (int j = -1; j <= 1; j++) {
-                if (i == 0 && j == 0) continue;
-
-                int xx = (x + i + width) % width;
-                int yy = (y + j + height) % height;
-                neighbours[counter] = map[pointToIndex(xx, yy)];
-                counter++;
+            for (int i = 0; i < width; i++) {
+                int count = aliveNeighboursCount(getNeighbours(map, width, i, rowIndex));
+                row[i] = newState(map[pointToIndex(width, i, rowIndex)], count);
             }
-        }
 
-        return neighbours;
-    }
-
-    private int aliveNeighboursCount(int[] neighbours) {
-        int count = 0;
-
-        for (int neighbour : neighbours)
-            count += neighbour;
-
-        return count;
-    }
-
-    private int newState(int oldState, int aliveNeighboursCount) {
-        switch (aliveNeighboursCount) {
-            case 2:
-                return oldState;
-            case 3:
-                return 1;
-            default:
-                return 0;
+            return new Row(rowIndex, row);
         }
     }
 
-    private int pointToIndex(int x, int y) {
-        return y * width + x;
+    class Row {
+        int rowIndex;
+        int[] row;
+
+        public Row(int rowIndex, int[] row) {
+            this.rowIndex = rowIndex;
+            this.row = row;
+        }
     }
 }

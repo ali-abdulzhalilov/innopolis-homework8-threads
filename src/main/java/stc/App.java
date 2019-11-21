@@ -3,6 +3,9 @@ package stc;
 import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Application launches single- and multi-threaded implementations of Conway's Game of Life
@@ -15,7 +18,7 @@ public class App {
     static long durationSingle = -1;
     static long durationMulti = -1;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, ExecutionException, InterruptedException {
         if (args.length < 4) return;
 
         String fIn = args[0];
@@ -24,7 +27,8 @@ public class App {
         String fOut2 = args[3];
 
         Life simpleLife = new Life(fIn);
-        MultithreadedLife multithreadedLife = new MultithreadedLife(fIn);
+        ExecutorService service = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 2);
+        MultithreadedLife multithreadedLife = new MultithreadedLife(fIn, service);
 
         Instant simpleStart = Instant.now();
         for (int i = 0; i < N; i++)
@@ -34,10 +38,9 @@ public class App {
         Instant multiStart = Instant.now();
         for (int i = 0; i < N; i++) {
             multithreadedLife.step();
-            //multithreadedLife.draw();
         }
         Instant multiEnd = Instant.now();
-        multithreadedLife.service.shutdown();
+        service.shutdown();
 
         durationSingle = Duration.between(simpleStart, simpleEnd).toMillis();
         durationMulti = Duration.between(multiStart, multiEnd).toMillis();

@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Implements a single-threaded version of Conway's Game of Life
@@ -51,7 +52,7 @@ class Life {
 
             for (int j = 0; j < this.width; j++) {
                 int number = row.get(j);
-                this.map[pointToIndex(j, i)] = number;
+                this.map[pointToIndex(width, j, i)] = number;
             }
         }
     }
@@ -64,6 +65,8 @@ class Life {
         return this.height;
     }
 
+
+
     /**
      * Fill map with ones and zeros randomly.
      * Ratio of ones to zeros is determined with probability p,
@@ -74,7 +77,7 @@ class Life {
 
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++)
-                map[pointToIndex(j, i)] = Math.random() < p ? 1 : 0;
+                map[pointToIndex(width, j, i)] = Math.random() < p ? 1 : 0;
         }
     }
 
@@ -83,7 +86,7 @@ class Life {
 
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
-                str.append(map[pointToIndex(j, i)]);
+                str.append(map[pointToIndex(width, j, i)]);
             }
             str.append('\n');
         }
@@ -93,20 +96,36 @@ class Life {
         fileOut.close();
     }
 
-    void step() {
+    void step() throws InterruptedException, ExecutionException {
         int[] newMap = new int[width * height];
 
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
-                int count = aliveNeighboursCount(getNeighbours(j, i));
-                newMap[pointToIndex(j, i)] = newState(map[pointToIndex(j, i)], count);
+                int count = aliveNeighboursCount(getNeighbours(map, width, j, i));
+                int index = pointToIndex(width, j, i);
+                newMap[index] = newState(map[index], count);
             }
         }
 
         map = newMap;
     }
 
-    private int[] getNeighbours(int x, int y) {
+    void draw() {
+        System.out.println("\n--------------------");
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; j++)
+                System.out.print((map[pointToIndex(width, j, i)] == 1 ? '#' : '.')+" ");
+            System.out.println();
+        }
+        System.out.println();
+    }
+
+    // static util functions
+    static int pointToIndex(int rowWidth, int x, int y) {
+        return y * rowWidth + x;
+    }
+
+    static int[] getNeighbours(int[] map, int width, int x, int y) {
         int[] neighbours = new int[8];
 
         int counter = 0;
@@ -115,8 +134,9 @@ class Life {
                 if (i == 0 && j == 0) continue;
 
                 int xx = (x + i + width) % width;
+                int height = map.length / width;
                 int yy = (y + j + height) % height;
-                neighbours[counter] = map[pointToIndex(xx, yy)];
+                neighbours[counter] = map[pointToIndex(width, xx, yy)];
                 counter++;
             }
         }
@@ -124,7 +144,7 @@ class Life {
         return neighbours;
     }
 
-    private int aliveNeighboursCount(int[] neighbours) {
+    static int aliveNeighboursCount(int[] neighbours) {
         int count = 0;
 
         for (int neighbour : neighbours)
@@ -133,7 +153,7 @@ class Life {
         return count;
     }
 
-    private int newState(int oldState, int aliveNeighboursCount) {
+    static int newState(int oldState, int aliveNeighboursCount) {
         switch (aliveNeighboursCount) {
             case 2:
                 return oldState;
@@ -142,19 +162,5 @@ class Life {
             default:
                 return 0;
         }
-    }
-
-    void draw() {
-        System.out.println("\n--------------------");
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++)
-                System.out.print((map[pointToIndex(j, i)] == 1 ? '#' : '.')+" ");
-            System.out.println();
-        }
-        System.out.println();
-    }
-
-    int pointToIndex(int x, int y) {
-        return y * width + x;
     }
 }
